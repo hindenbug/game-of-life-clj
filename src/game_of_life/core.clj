@@ -11,7 +11,7 @@
 (def west [-1 0])
 
 (defn setup-w [w h]
-  (vec (repeat w (vec (repeat h nil)))))
+  (vec (repeat w (vec (repeat h "-")))))
 
 (defn neighbours [[x y]]
   (vec (for [i (range -1 2)
@@ -19,26 +19,27 @@
              :when (not= 0 i j)]
          [(+ x i) (+ y j)])))
 
-(defn all-alive-cells [world]
+(defn all-cells [world]
   (vec (for [[x row] (map-indexed vector world)
              [y value] (map-indexed vector row)]
          [x y])))
 
+(defn is_alive? [world cell]
+  (= "x" (get-in world cell)))
+
 (defn alive-neighbours [world cell]
-  (count (filter #(= "x" (get-in world %))
-                 (neighbours cell))))
+  (filter #(is_alive? world %)
+          (neighbours cell)))
 
 (defn survive? [world cell]
-  (let [alive-nbrs (alive-neighbours world cell)]
-    (and (nil? (get-in world cell)) (= 3 alive-nbrs))))
-      ;;(or (= alive-nbrs 2) (= alive-nbrs 3))))
+  (let [n (count (alive-neighbours world cell))]
+    (or (= n 3)
+        (and (= n 2) (is_alive? world cell)))))
 
 (defn tick [world]
-  (reduce (fn [world loc]
-            (if (survive? world loc)
-              (assoc-in world loc "x")
-              (assoc-in world loc nil)))
-          world (all-alive-cells world)))
+  (let [cells (all-cells world)
+        to_live (vec (filter #(survive? world %) cells))]
+    ))
 
 ;; alive as set of cordinates
 (defn setup-world [w h cells]
