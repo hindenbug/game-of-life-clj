@@ -1,49 +1,33 @@
 (ns game-of-life.core
   (:gen-class))
 
-(def north [0 1])
-(def south [0 -1])
-(def north-east [1 1])
-(def north-west [-1 1])
-(def south-east [1 -1])
-(def south-west [-1 -1])
-(def east [1 0])
-(def west [-1 0])
-
-(defn setup-w [w h]
-  (vec (repeat w (vec (repeat h "-")))))
-
-(defn neighbours [[x y]]
-  (vec (for [i (range -1 2)
-             j (range -1 2)
-             :when (not= 0 i j)]
-         [(+ x i) (+ y j)])))
-
-(defn all-cells [world]
-  (vec (for [[x row] (map-indexed vector world)
-             [y value] (map-indexed vector row)]
+(defn all-live-cells [world]
+  (set (for [[x row] (map-indexed vector world)
+             [y value] (map-indexed vector row)
+             :when (= "x" value)]
          [x y])))
 
-(defn is_alive? [world cell]
-  (= "x" (get-in world cell)))
+(defn neighbours [[x y]]
+  (set (filter (fn [[x y]] (and (>= x 0) (>= y 0)))
+       (for [i (range -1 2)
+             j (range -1 2)
+             :when (not= 0 i j)]
+         [(+ x i) (+ y j)]))))
 
-(defn alive-neighbours [world cell]
-  (filter #(is_alive? world %)
-          (neighbours cell)))
-
-(defn survive? [world cell]
-  (let [n (count (alive-neighbours world cell))]
-    (or (= n 3)
-        (and (= n 2) (is_alive? world cell)))))
-
-(defn tick [world]
-  (let [cells (all-cells world)
-        to_live (vec (filter #(survive? world %) cells))]
-    ))
+(defn tick [cells]
+  (set (for [[cell n] (frequencies (mapcat neighbours cells))
+             :when (if (contains? cells cell) (or (= n 3) (= n 2)) (= n 3))]
+         cell)))
 
 ;; alive as set of cordinates
 (defn setup-world [w h cells]
-  (reduce (fn [world loc]
-            (assoc-in world loc "x"))
-          (setup-w w h) cells))
+  (set (vec (for [x (range w)]
+         (vec (for [y (range h)]
+                (if (contains? cells [x y]) "x" "-")))))))
+
+(defn run [w h n]
+  (def world (setup-world w h #{[2 0] [2 1] [2 2] [1 2] [0 1]}))
+  (dotimes [i 4]
+    (println)
+    (first (map println (setup-world w h (first (drop i (iterate tick (all-live-cells world)))))))))
 
